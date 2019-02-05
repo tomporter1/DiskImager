@@ -1,7 +1,7 @@
 ﻿─ section CreateImage parents standard_toolkit
 └
 
-┌ NAME
+┌ ReadFile
   DECLS
 |
   PREDS
