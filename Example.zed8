@@ -17,7 +17,7 @@
 |
   dom represents ⊆ deadbox 
   dom changed = dom represents 
-  ∀ i : dom represents ⦁ changed ( represents i ) ⩤ pde i ⩥ { dead } ⊆ pde ( represents i ) 
+  ∀ i : dom represents ⦁ (changed ( represents i ) ⩤ pde i ⩥ { dead } ) ⊆ pde ( represents i ) 
   changed ⦇ ( ran represents ∩ deadbox ) ⦈ = { ∅ } 
   changed ⦇ ( ran represents ∩ ( pTwo ∪ remote ) ) ⦈ ⊆ { ADDRESS } 
 └ 
@@ -36,7 +36,7 @@ The princples of imaging transform:
 |
   represents′ = represents ⊕ { image? ↦ original? } 
   { original? , image? } ⩤ pde′ = { original? , image? } ⩤ pde 
-  ∃ ch : 𝔽 ADDRESS | { a : ADDRESS | pde′ original? a ≠ pde original? a } ⊆ ch ⦁ changed′ = changed ⊕ { original? ↦ ch } 
+  ∃ch : 𝔽 ADDRESS | { a : ADDRESS | pde′ original? a ≠ pde original? a } ⊆ ch ⦁ changed′ = changed ⊕ { original? ↦ ch } 
   original? ∈ deadbox ⇒ changed′ original? = ∅ 
   original? ∈ remote ⇒ changed′ original? = ADDRESS 
 └ 
