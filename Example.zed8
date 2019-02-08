@@ -1,0 +1,58 @@
+─ section Examle parents standard_toolkit └ 
+
+─ [ DEVICE , ADDRESS , CHUNK ] └ 
+
+╷ dead : CHUNK └ 
+
+╷
+  deadbox , pTwo , remote : 𝔽 DEVICE 
+|
+  disjoint ⟨ deadbox , pTwo , remote ⟩ 
+└ 
+
+┌ World 
+  pde : DEVICE → ( ADDRESS ⇸ CHUNK ) 
+  represents : DEVICE ⤔ DEVICE 
+  changed : DEVICE ⇸ 𝔽 ADDRESS 
+|
+  dom represents ⊆ deadbox 
+  dom changed = dom represents 
+  ∀ i : dom represents ⦁ changed ( represents i ) ⩤ pde i ⩥ { dead } ⊆ pde ( represents i ) 
+  changed ⦇ ( ran represents ∩ deadbox ) ⦈ = { ∅ } 
+  changed ⦇ ( ran represents ∩ ( pTwo ∪ remote ) ) ⦈ ⊆ { ADDRESS } 
+└ 
+The last line of this might be wrong
+
+┌ WorldInit 
+  World ′ 
+|
+  represents′ = ∅ 
+└ 
+
+The princples of imaging transform:
+┌ Imaging 
+  ΔWorld 
+  original? , image? : DEVICE 
+|
+  represents′ = represents ⊕ { image? ↦ original? } 
+  { original? , image? } ⩤ pde′ = { original? , image? } ⩤ pde 
+  ∃ ch : 𝔽 ADDRESS | { a : ADDRESS | pde′ original? a ≠ pde original? a } ⊆ ch ⦁ changed′ = changed ⊕ { original? ↦ ch } 
+  original? ∈ deadbox ⇒ changed′ original? = ∅ 
+  original? ∈ remote ⇒ changed′ original? = ADDRESS 
+└ 
+
+
+We record the set of changed addresses as possibly an overestimate of the actually changed addresses.
+For deadboxes this is empty, for remote devices we must assume that anything may be changed, and
+for p2 devices it is somewhere in between.
+
+A typical non-imaging specificiation:
+┌ Size 
+  ΞWorld 
+  image? , target! : DEVICE 
+  result! : ℕ 
+|
+  image? ∈ dom represents 
+  result! = # ( dom ( pde image? ) ) 
+  target! = represents image? 
+└ 

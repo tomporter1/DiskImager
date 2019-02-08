@@ -1,0 +1,77 @@
+\begin{zsection}	 \SECTION spec \parents~standard\_toolkit
+\end{zsection}
+
+
+
+This specification describes ...
+
+\begin{zed}[ DEVICE , ADDRESS , CHUNK ]
+\end{zed}
+
+
+
+\begin{axdef}dead : CHUNK
+\end{axdef}
+
+
+
+\begin{axdef}deadbox , pTwo , remote : \finset DEVICE 
+\where
+ \disjoint \langle deadbox , pTwo , remote \rangle
+\end{axdef}
+
+
+
+\begin{schema}{World}
+\\
+ pde : DEVICE \fun ( ADDRESS \pfun CHUNK ) \\
+ represents : DEVICE \pinj DEVICE \\
+ changed : DEVICE \pfun \finset ADDRESS 
+\where
+ \dom represents \subseteq deadbox \\
+ \dom changed = \dom represents \\
+ \forall i : \dom represents @ changed ( represents~i ) \ndres pde~i \nrres \{ dead \} \subseteq pde ( represents~i ) \\
+ changed \limg ( \ran represents \cap deadbox ) \rimg~= \{ \emptyset \} \\
+ changed \limg ( \ran represents \cap ( pTwo \cup remote ) ) \rimg \subseteq \{ ADDRESS \}
+\end{schema}
+
+
+
+\begin{schema}{WorldInit}
+\\
+ World~' 
+\where
+ represents' =~\emptyset
+\end{schema}
+
+
+
+The princples of imaging transform:
+\begin{schema}{Imaging}
+\\
+ \Delta World \\
+ original? , image? : DEVICE 
+\where
+ represents' = represents \oplus \{ image? \mapsto original? \} \\
+ \{ original? , image? \} \ndres pde' = \{ original? , image? \} \ndres pde \\
+ \exists ch : \finset ADDRESS | \{ a : ADDRESS | pde'~original?~a \neq pde~original?~a \} \subseteq ch @ changed' = changed \oplus \{ original? \mapsto ch \} \\
+ original? \in deadbox \implies changed'~original? =~\emptyset \\
+ original? \in remote \implies changed'~original? = ADDRESS
+\end{schema}
+
+
+We record the set of changed addresses as possibly an overestimate of the actually changed addresses.
+For deadboxes this is empty, for remote devices we must assume that anything may be changed, and
+for p2 devices it is somewhere in between.
+
+A typical non-imaging specificiation:
+\begin{schema}{Size}
+\\
+ \Xi World \\
+ image? , target! : DEVICE \\
+ result! : \nat 
+\where
+ image? \in \dom represents \\
+ result! =~\# ( \dom ( pde~image? ) ) \\
+ target! = represents~image?
+\end{schema}
