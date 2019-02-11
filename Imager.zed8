@@ -1,0 +1,55 @@
+﻿─ section Imager parents standard_toolkit
+└
+
+─ [ DEVICE, SECTOR ] └
+
+─
+  BIT ::= ONE | ZERO
+└
+
+╷
+  currupted: SECTOR
+└
+
+The three types of devices that imaging can be done in
+deadbox - the device remains unchanged throught the image creation
+pTwo - the device may have been changed during this process. It is not known how much of the data has been changed
+remote - the data is on something like a server so NON of the data is origional
+╷
+  deadbox, pTwo, remote: 𝔽 DEVICE
+|
+  deadbox ∩ pTwo ∩ remote = ∅
+└
+
+drives map a dirve to a releation that maps a sequence of sectors. The position in the sequence is the address for that sector
+images is the new disk images that will be created
+changed releates the drives to the addresses that have been changed when extracting the data
+---
+All drives will be in changed (if they are unchanged then they will point to an empty set)
+All of the addresses that have been changed are a subset of all of the addresses on the drive - addresses are the sequence position 
+deadboxes have no address that have been changed
+pTwo and remote devices can have any number of addresses changed
+┌ World
+  drives: DEVICE → ⟨ SECTOR ⟩
+  images: DEVICE ⤔ DEVICE
+  changed: DEVICE ⇸ 𝔽 ℕ
+|
+  dom images ⊆ deadbox
+  dom changed =  dom images
+  ∀i: dom images ⦁  changed i ⊆ dom { drives i }
+  changed⦇ ran images ∩ deadbox ⦈ = { }
+  changed⦇ ran images ∩ (pTwo ∪ remote) ⦈ ⊆ ℙ ℕ
+└
+
+At initialisation there are no images that have been created
+┌ WorldInit
+  World ′
+|
+  images′ = ∅
+└
+
+┌ CreateImage
+  ΔWorld
+|
+  drives′ = drives
+└
