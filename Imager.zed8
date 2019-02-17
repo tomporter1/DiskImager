@@ -18,7 +18,7 @@ remote - the data is on something like a server so NON of the data is origional
   deadbox ∩ pTwo ∩ remote = ∅
 └
 
-drives map a dirve to a releation that maps a sequence of sectors. The position in the sequence is the address for that sector
+drives map a dirve to a releation that maps a sequence of sectors (represented as a sequence of bits). The position in the sequence is the address for that sector
 images is the new disk images that will be created
 changed releates the drives to the addresses that have been changed when extracting the data
 ---
@@ -30,7 +30,7 @@ All of the addresses that have been changed are a subset of all of the addresses
 deadboxes have no address that have been changed
 pTwo and remote devices can have any number of addresses changed
 ┌ World
-  drives: DEVICE → ⟨ SECTOR ⟩
+  drives: DEVICE → ⟨ ⟨ BIT ⟩ ⟩
   images: DEVICE ⤔ DEVICE
   changed: DEVICE ⇸ 𝔽 ℕ
 |
@@ -49,14 +49,26 @@ At initialisation there are no images that have been created
   images′ = ∅
 └
 
-origional? - source drive 
+source? - source drive 
+target? - the drive that the image will be releated to
 image! - created image
 errorSectors! - set of all addresses where there was a corrupted sector/error
+---
+adds the image releating to the target disk to the drives
+if there is no image for the tareget image in drives then image! is empty
+sDrive (source drive) is the drive that a copy is being made of 
+adds a copy of the sector (sequence of bits) to image!
+	if the sector is corrupted then all of the bits in that sector are 0s
 ┌ CreateImage
   ΔWorld
-  origional?, image! : DEVICE
+  source?, target? : DEVICE
+  image!, sDrive: ⟨ ⟨ BIT ⟩ ⟩
   errorSectors!: 𝔽 ℕ
 |
-  drives′ = drives ∪ { image! ↦ (drives origional?) }
-  ∃image: DRIVE; ∀sector: ran (drives origional?) ⦁ 
+  drives′ = drives ∪ { target? ↦  image! }
+  (target? ↦ image!) ∉ drives ⇒ image! = ∅
+  ∀sectorAddress: dom (drives source?) | image! = image! ⁀ ⟨ (drives source?) sectorAddress ⟩ ⦁ (drives source?) sectorAddress ∉ corrupted  
 └
+  ∀sectorAddress: dom (sDrive); ∃s: ⟨ ZERO ⟩ | image! = image! ⁀ s ∧ errorSectors! = errorSectors! ∪ { sDrive⦇ sectorAddress ⦈ } ⦁ sDrive sectorAddress ∈ corrupted  ∧ #s = #(sDrive sectorAddress) 
+
+
