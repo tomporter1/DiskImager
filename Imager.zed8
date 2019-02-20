@@ -31,12 +31,9 @@ deadboxes have no address that have been changed
 pTwo and remote devices can have any number of addresses changed
 ┌ World
   drives: DEVICE → seq( seq( BIT ) )
-  devices: 𝔽 DEVICE
-  disks: 𝔽 seq( seq( BIT ) )
   images: DEVICE ⤔ DEVICE
   changed: DEVICE ⇸ 𝔽 ℕ
 |
-  drives ∈ devices → disks
   dom images ⊆ deadbox
   dom changed =  dom images
   dom drives ⊆ ran images
@@ -55,20 +52,24 @@ At initialisation there are no images that have been created
 source? - source drive 
 target? - the drive that the image will be releated to
 image - created image
+sDrive - a temp var for the source drive with the changed sectors removed from the sequence
 errorSectors! - set of all addresses where there was a corrupted sector/error
 ---
 adds the image releating to the target disk to the drives
 if there is no image for the tareget image in drives then image! is empty
+sDrives is equal to the origional source drive without the changed sectors in it
 if the sector is NOT corrupted then the sector is overwritten to the new image in the same position 
 If the sector is corrupted then the address is added to errorSectors! and a sequence of all ZEROs is put in the new image at the address of the corrupted sector
 ┌ CreateImage
   ΔWorld
   source?, target? : DEVICE
-  image: seq( seq( BIT ) )
+  image, sDrive: seq( seq( BIT ) )
   errorSectors!: 𝔽 ℕ
 |
   drives′ = drives ∪ { target? ↦  image }
   (target? ↦ image) ∉ drives ⇒ image = ∅
-  ∀sectorAddress: dom (drives source?) | image = image ⊕ {sectorAddress ↦ (drives source?) sectorAddress} ⦁ sectorAddress ∉ corrupted  
-  ∀sectorAddress: dom (drives source?) ⦁ ∃s: seq( BIT ) | image = image ⊕ {sectorAddress ↦ s} ⦁ sectorAddress ∈ corrupted  ∧ #s = #((drives source?) sectorAddress) ∧ s ↾ { ONE } = ∅ ∧ errorSectors! = errorSectors! ∪ { sectorAddress }
+  ∀sectorAddress: dom (drives source?) | sDrive = sDrive ⊕ { sectorAddress ↦ (drives source?) sectorAddress } ⦁ sectorAddress ∉ changed source?
+  ∀sectorAddress: dom sDrive | image = image ⊕ { sectorAddress ↦ sDrive sectorAddress } ⦁ sectorAddress ∉ corrupted  
+  ∀sectorAddress: dom sDrive ⦁ ∃s: seq( BIT ) | image = image ⊕ { sectorAddress ↦ s } ∧ errorSectors! = errorSectors! ∪ { sectorAddress } ⦁ 
+  												   sectorAddress ∈ corrupted  ∧ #s = #(sDrive sectorAddress) ∧ s ↾ { ONE } = ∅   
 └
