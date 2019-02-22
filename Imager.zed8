@@ -88,5 +88,5 @@ patternLocation! - a set of sector addresses that have that bit pattern in it
 |
   drive? ∈ dom drives
   bitPattern? ≠ ∅
-  ∀sectorAddress: dom (drives drive?) | patternLocation! = patternLocation! ∪ { sectorAddress } ⦁ bitPattern? infix (drives drive? sectorAddress) 
+  ∀sectorAddress: dom (drives drive?) | patternLocation! = patternLocation! ∪ { sectorAddress } ⦁ bitPattern? infix (drives drive? sectorAddress)
 └
