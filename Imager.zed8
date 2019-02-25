@@ -11,9 +11,10 @@ The three types of devices that imaging can be done in
 deadbox - the device remains unchanged throught the image creation
 pTwo - the device may have been changed during this process. It is not known how much of the data has been changed
 remote - the data is on something like a server so NON of the data is origional
+corrupted - a set of all sector addresses that are corrupted
 ╷
   deadbox, pTwo, remote: 𝔽 DEVICE
-  corrupted: 𝔽 ℕ
+  corrupted: DEVICE → 𝔽 ℕ
 |
   deadbox ∩ pTwo ∩ remote = ∅
 └
@@ -57,6 +58,7 @@ errorSectors! - set of all addresses where there was a corrupted sector/error
 ---
 if there is no image for the tareget image in drives then image! is empty
 there is no changes to any device during this operation
+the source drive is unchanged during this operation
 sDrives is equal to the origional source drive without the changed sectors in it
 if the sector is NOT corrupted then the sector is overwritten to the new image in the same position 
 If the sector is corrupted then the address is added to errorSectors! and a sequence of all ZEROs is put in the new image at the address of the corrupted sector
@@ -69,10 +71,11 @@ adds the image releating to the target disk to the drives
 |
   (target? ↦ image) ∉ drives ⇒ image = ∅
   changed′ = changed
+  drives′ source? = drives source?
   ∀sectorAddress: dom (drives source?) | sDrive = sDrive ⊕ { sectorAddress ↦ (drives source?) sectorAddress } ⦁ sectorAddress ∉ changed source?
-  ∀sectorAddress: dom sDrive | image = image ⊕ { sectorAddress ↦ sDrive sectorAddress } ⦁ sectorAddress ∉ corrupted  
+  ∀sectorAddress: dom sDrive | image = image ⊕ { sectorAddress ↦ sDrive sectorAddress } ⦁ sectorAddress ∉ (corrupted source?) 
   ∀sectorAddress: dom sDrive ⦁ ∃s: seq( BIT ) | image = image ⊕ { sectorAddress ↦ s } ∧ errorSectors! = errorSectors! ∪ { sectorAddress } ⦁ 
-  												   sectorAddress ∈ corrupted  ∧ #s = #(sDrive sectorAddress) ∧ s ↾ { ONE } = ∅   
+  												   sectorAddress ∈ (corrupted source?) ∧ #s = #(sDrive sectorAddress) ∧ s ↾ { ONE } = ∅   
   drives′ = drives ∪ { target? ↦  image }
 └
 
