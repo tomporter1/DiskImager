@@ -21,12 +21,13 @@ corrupted - a set of all sector addresses that are corrupted
 
 drives map a dirve to a releation that maps a sequence of sectors (represented as a sequence of bits). The position in the sequence is the address for that sector
 images is the new disk images that will be created
+		old unchanged devices → new images
 changed releates the drives to the addresses that have been changed when extracting the data
 ---
   dom images ⊆ deadbox -> not sure if this line is correct 
 
 All drives will be in changed (if they are unchanged then they will point to an empty set)
-All of the created images will be in the drives domain releation
+All of the created images will be in the drives domain
 All of the addresses that have been changed are a subset of all of the addresses on the drive - addresses are the sequence position 
 deadboxes have no address that have been changed
 pTwo and remote devices can have any number of addresses changed
@@ -35,7 +36,7 @@ pTwo and remote devices can have any number of addresses changed
   images: DEVICE ⤔ DEVICE
   changed: DEVICE ⇸ 𝔽 ℕ
 |
-  dom images ⊆ deadbox
+  deadbox ⊆ dom images
   dom changed =  dom images
   dom drives ⊆ ran images
   ∀i: dom images ⦁  changed i ⊆ dom ( drives i )
@@ -56,20 +57,21 @@ image - created image
 sDrive - a temp var for the source drive with the changed sectors removed from the sequence
 errorSectors! - set of all addresses where there was a corrupted sector/error
 ---
-if there is no image for the tareget image in drives then image! is empty
+the target drive has not already been used to create another image
 there is no changes to any device during this operation
 the source drive is unchanged during this operation
 sDrives is equal to the origional source drive without the changed sectors in it
 if the sector is NOT corrupted then the sector is overwritten to the new image in the same position 
 If the sector is corrupted then the address is added to errorSectors! and a sequence of all ZEROs is put in the new image at the address of the corrupted sector
 adds the image releating to the target disk to the drives
+adds the device with the new image on it to the images releation
 ┌ CreateImage
   ΔWorld
   source?, target? : DEVICE
   image, sDrive: seq( seq( BIT ) )
   errorSectors!: 𝔽 ℕ
 |
-  (target? ↦ image) ∉ drives ⇒ image = ∅
+  (target?) ∉ dom drives
   changed′ = changed
   drives′ source? = drives source?
   ∀sectorAddress: dom (drives source?) | sDrive = sDrive ⊕ { sectorAddress ↦ (drives source?) sectorAddress } ⦁ sectorAddress ∉ changed source?
@@ -77,12 +79,17 @@ adds the image releating to the target disk to the drives
   ∀sectorAddress: dom sDrive ⦁ ∃s: seq( BIT ) | image = image ⊕ { sectorAddress ↦ s } ∧ errorSectors! = errorSectors! ∪ { sectorAddress } ⦁ 
   												   sectorAddress ∈ (corrupted source?) ∧ #s = #(sDrive sectorAddress) ∧ s ↾ { ONE } = ∅   
   drives′ = drives ∪ { target? ↦  image }
+  images′ = images ⊕ { source? ↦ target? }
 └
+
+this operation will not find a bit pattern that spans different sectors
 
 drive? - the drive that has the image that you want to search on it
 bitPattern - the pattern of bits that you want to search for 
+---
+if there is no bit pattern to search for then there is no locations for it in the searched image
 patternLocation! - a set of sector addresses that have that bit pattern in it
-	"infix" matches one sequence into another (like in)
+	"infix" matches one sequence into another (like in) -> p119 in z-manual
 ┌ SearchImage
   ΞWorld
   drive?: DEVICE
@@ -90,6 +97,17 @@ patternLocation! - a set of sector addresses that have that bit pattern in it
   patternLocation!: 𝔽 ℕ
 |
   drive? ∈ dom drives
-  bitPattern? ≠ ∅
-  ∀sectorAddress: dom (drives drive?) | patternLocation! = patternLocation! ∪ { sectorAddress } ⦁ bitPattern? infix (drives drive? sectorAddress)
+  bitPattern? = ∅ ⇒ patternLocation! = ∅
+  ∀sectorAddress: dom (drives drive?) ⦁ bitPattern? infix (drives drive? sectorAddress) ⇒ patternLocation! = patternLocation! ∪ { sectorAddress }
+└
+
+┌ SearchImageNoSectors
+  ΞWorld
+  drive?: DEVICE
+  bitPattern?: seq( BIT )
+  patternLocation!: 𝔽 ℕ
+|
+  drive? ∈ dom drives
+  bitPattern? = ∅ ⇒ patternLocation! = ∅
+  ∀sector: dom (drives drive?) ⦁ ∃s: seq( BIT ) | bitPattern? infix s ⇒ patternLocation! = patternLocation! ∪  s ⦇ { head bitPattern?} ⦈ ⦁ s = s ⁀ drives drive? sector
 └
