@@ -98,10 +98,11 @@ splits up the new drive into partitions and adds them to the releations for each
 |
   #partitionPinters? = 4
   partitionPinters?(1) = 1
-  
+    
   newDrive? ∉ FATdevices
   newDrive? ∈ dom drives
   
+  FATdevices′ = FATdevices ∪ { newDrive? }
   ∀sectorAddress: dom( drives newDrive? ) ⦁ ∃s: seq( seq( BIT ) ) | BootSectors′ = BootSectors ∪ { newDrive? ↦ s } ⦁ s = s ⊕ {sectorAddress ↦ drives newDrive? sectorAddress} ∧ sectorAddress ≤ partitionPinters?(2)
   ∀sectorAddress: dom( drives newDrive? ) ⦁ ∃s: seq( seq( BIT ) ) | FAT′ = FAT ∪ { newDrive? ↦ s } ⦁ s = s ⊕ {sectorAddress ↦ drives newDrive? sectorAddress} ∧ sectorAddress ≥ partitionPinters?(2) ∧ sectorAddress ≤ partitionPinters?(3)
   ∀sectorAddress: dom( drives newDrive? ) ⦁ ∃s: seq( seq( BIT ) ) | Data′ = Data ∪ { newDrive? ↦ s } ⦁ s = s ⊕ {sectorAddress ↦ drives newDrive? sectorAddress} ∧ sectorAddress ≥ partitionPinters?(3) ∧ sectorAddress ≤ partitionPinters?(4)
