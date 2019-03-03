@@ -51,6 +51,71 @@ At initialisation there are no images that have been created
   images′ = ∅
 └
 
+FATdevices - set of all devices that are currently in the FAT system
+BootSectors - the boot sectors from all of the drives in the system
+FAT - the File Allocation Tables from all of the drives in the system
+Data - the data sectors from all of the drives in the system
+RootDirectory - the Root Directory information sectors from all of the drives in the system
+---
+All FAT devices must be in the devices releation from world
+all devices in the FAT system must have their partitions in each of the partition releations
+┌ FatSystem
+  World
+  FATdevices: 𝔽 DEVICE
+  BootSectors: DEVICE → seq( seq( BIT ) )
+  FAT: DEVICE → seq( seq( BIT ) )
+  Data: DEVICE → seq( seq( BIT ) )
+  RootDirectory: DEVICE → seq( seq( BIT ) )
+|
+  FATdevices ⊆ dom drives
+  dom BootSectors = FATdevices
+  dom FAT = FATdevices
+  dom Data = FATdevices
+  dom RootDirectory = FATdevices
+└
+
+At initialisation there are no drives that are in the FAT system
+┌ FatSystemInit
+  FatSystem ′
+|
+  FATdevices′ = ∅
+└
+
+newDrive? - the new drive to add to the FAT system
+partitionPinters? - pointers for each partition needed by a FAT system. The pointer points to the first sector in that partition
+---
+There can only be 4 pointers
+the first partition pointer must be 1 (the boot drive must always be at the start of the drive)
+
+The new drive must not already be in the FAT system
+The new drive must already be in the world
+
+splits up the new drive into partitions and adds them to the releations for each partition in the FAT system based on the pointers  
+┌ AddFatDrive
+  ΔFatSystem
+  newDrive?: DEVICE
+  partitionPinters?: iseq( ℕ↘1↖ )
+|
+  #partitionPinters? = 4
+  partitionPinters?(1) = 1
+  
+  newDrive? ∉ FATdevices
+  newDrive? ∈ dom drives
+  
+  ∀sectorAddress: dom( drives newDrive? ) ⦁ ∃s: seq( seq( BIT ) ) | BootSectors′ = BootSectors ∪ { newDrive? ↦ s } ⦁ s = s ⊕ {sectorAddress ↦ drives newDrive? sectorAddress} ∧ sectorAddress ≤ partitionPinters?(2)
+  ∀sectorAddress: dom( drives newDrive? ) ⦁ ∃s: seq( seq( BIT ) ) | FAT′ = FAT ∪ { newDrive? ↦ s } ⦁ s = s ⊕ {sectorAddress ↦ drives newDrive? sectorAddress} ∧ sectorAddress ≥ partitionPinters?(2) ∧ sectorAddress ≤ partitionPinters?(3)
+  ∀sectorAddress: dom( drives newDrive? ) ⦁ ∃s: seq( seq( BIT ) ) | Data′ = Data ∪ { newDrive? ↦ s } ⦁ s = s ⊕ {sectorAddress ↦ drives newDrive? sectorAddress} ∧ sectorAddress ≥ partitionPinters?(3) ∧ sectorAddress ≤ partitionPinters?(4)
+  ∀sectorAddress: dom( drives newDrive? ) ⦁ ∃s: seq( seq( BIT ) ) | RootDirectory′ = RootDirectory ∪ { newDrive? ↦ s } ⦁ s = s ⊕ {sectorAddress ↦ drives newDrive? sectorAddress} ∧ sectorAddress ≥ partitionPinters?(4)
+└
+
+┌ DeleteFile
+  ΔFatSystem
+  FileName?: seq( BIT )
+  dev?: DEVICE
+|
+  dev? ∈ FATdevices
+└
+
 source? - source drive 
 target? - the drive that the image will be releated to
 image - created image
@@ -99,15 +164,4 @@ patternLocation! - a set of sector addresses that have that bit pattern in it
   drive? ∈ dom drives
   bitPattern? = ∅ ⇒ patternLocation! = ∅
   ∀sectorAddress: dom (drives drive?) ⦁ bitPattern? infix (drives drive? sectorAddress) ⇒ patternLocation! = patternLocation! ∪ { sectorAddress }
-└
-
-┌ SearchImageNoSectors
-  ΞWorld
-  drive?: DEVICE
-  bitPattern?: seq( BIT )
-  patternLocation!: 𝔽 ℕ
-|
-  drive? ∈ dom drives
-  bitPattern? = ∅ ⇒ patternLocation! = ∅
-  ∀sector: dom (drives drive?) ⦁ ∃s: seq( BIT ) | bitPattern? infix s ⇒ patternLocation! = patternLocation! ∪  s ⦇ { head bitPattern?} ⦈ ⦁ s = s ⁀ drives drive? sector
 └
