@@ -117,6 +117,7 @@ splits up the new drive into partitions and adds them to the releations for each
   dev? ∈ FATdevices
 └
 
+
 source? - source drive 
 target? - the drive that the image will be releated to
 image - created image

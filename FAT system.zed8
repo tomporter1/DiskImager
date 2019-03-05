@@ -1,0 +1,37 @@
+﻿─ section FATsystem parents standard_toolkit
+└
+
+─ [ DEVICE ] └
+
+─
+  PARTITION ::= BOOT | FAT | DATA | ROOT
+└
+
+┌ FATworld
+  drives: DEVICE → seq( PARTITION )
+|
+  ∀d: ran drives ⦁ d = ⟨ BOOT, FAT, DATA, ROOT ⟩
+└
+
+┌ FATworldInit
+  FATworld ′
+|
+  drives′ = ∅
+└
+
+needs finishing
+┌ DeleteFile
+  ΔFATworld
+  device?: DEVICE
+|
+  device? ∈ dom drives
+└
+
+
+#############################
+
+ToDo
+
+FatToImage
+
+ImageToFat
