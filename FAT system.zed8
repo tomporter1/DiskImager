@@ -7,10 +7,16 @@
   PARTITION ::= BOOT | FAT | DATA | ROOT
 └
 
+─
+  BIT ::= ONE | ZERO
+└
+
+---
+each drive must have 4 partitions and the first one must be 512 sectors long. Each sector in each partiton must be 8 bits (a byte) long 
 ┌ FATworld
-  drives: DEVICE → seq( PARTITION )
+  drives: DEVICE → seq( seq( seq( BIT ) ) )
 |
-  ∀d: ran drives ⦁ d = ⟨ BOOT, FAT, DATA, ROOT ⟩
+  ∀disk: ran drives | ∀partit: ran disk ⦁ #partit = 4 ∧ #(head partit) = 512 ∧ (∀sector: ran partit ⦁ #sector = 8)
 └
 
 ┌ FATworldInit
@@ -34,4 +40,9 @@ ToDo
 
 FatToImage
 
+remove outer sequence 
+concat the 4 ones that are now the outer ones
+
 ImageToFat
+split main seq into 4 based on the pointers 
+put them all into one seq
