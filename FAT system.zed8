@@ -4,25 +4,78 @@
 ─ [ DEVICE ] └
 
 ─
-  PARTITION ::= BOOT | FAT | DATA | ROOT
-└
-
-─
   BIT ::= ONE | ZERO
 └
 
+drives - all of the devices that have a fat file system in the world
+partitionTables - all of the partition tables for the drives in the system
 ---
 each drive must have 4 partitions and the first one must be 512 sectors long. Each sector in each partiton must be 8 bits (a byte) long 
+the first partiton offset must be 1 (boot always at the start and index starts at 1) and there must be 4 partition offsets in eact partition table
 ┌ FATworld
   drives: DEVICE → seq( seq( seq( BIT ) ) )
+  partitionTables: DEVICE → seq( ℕ↘1↖ )
 |
-  ∀disk: ran drives | ∀partit: ran disk ⦁ #partit = 4 ∧ #(head partit) = 512 ∧ (∀sector: ran partit ⦁ #sector = 8)
+  ∀disk: ran drives ⦁ ∀partit: ran disk ⦁ #partit = 4 ∧ #(head partit) = 512 ∧ (∀sector: ran partit ⦁ #sector = 8)  
+  ∀offsets: ran partitionTables ⦁ offsets(1) = 1 ∧ #offsets = 4
 └
 
 ┌ FATworldInit
   FATworld ′
 |
   drives′ = ∅
+  partitionTables′ = ∅
+└
+
+change to get the image from the other world schema
+
+image? - the image that is being loaded into system
+device? - the device that the image releates to from the world
+boot, fat, root, data - temp vars to store the partitions from the image
+---
+the device must not be already in the system of all drives
+the device must have its partition table already in the fat world
+the partition table remains unchanged
+
+all of the partitions are set to be sub sequences of the image
+
+these sub sequences are then added to the drives releation as a fat file system
+┌ ImageToFat
+  ΔFATworld
+  image?: seq( seq( BIT ) )
+  device?: DEVICE
+  boot, fat, root, data: seq( seq( BIT ) )
+|
+  device? ∉ dom drives
+  device? ∈ dom partitionTables
+  partitionTables′ = partitionTables
+  
+  ∀sectorAddress: dom image? ⦁ ∃s: seq( seq( BIT ) ) | boot =  s ⦁ s = s ⊕ { sectorAddress ↦ image?(sectorAddress) } ∧ sectorAddress ≤ (partitionTables device?)(2)
+  ∀sectorAddress: dom image? ⦁ ∃s: seq( seq( BIT ) ) | fat =  s ⦁ s = s ⊕ { sectorAddress ↦ image?(sectorAddress) } ∧ sectorAddress ≥ (partitionTables device?)(2) ∧ sectorAddress ≤ (partitionTables device?)(3)
+  ∀sectorAddress: dom image? ⦁ ∃s: seq( seq( BIT ) ) | root =  s ⦁ s = s ⊕ { sectorAddress ↦ image?(sectorAddress) } ∧ sectorAddress ≥ (partitionTables device?)(3) ∧ sectorAddress ≤ (partitionTables device?)(4)
+  ∀sectorAddress: dom image? ⦁ ∃s: seq( seq( BIT ) ) | data =  s ⦁ s = s ⊕ { sectorAddress ↦ image?(sectorAddress) } ∧ sectorAddress ≥ (partitionTables device?)(4)
+
+  drives′ = drives ∪ { device? ↦ ⟨ boot, fat, root, data ⟩ } 
+└
+
+┌ FATtoImage
+  ΞFATworld
+  image!: seq( seq( BIT ) ) 
+  device?: DEVICE
+|
+  device? ∈ dom drives
+  image! = drives device?(1) ⁀ drives device?(2) ⁀ drives device?(3) ⁀ drives device?(4)
+└
+
+┌ AddPartitionTable
+  ΔFATworld
+  image?: seq( seq( BIT ) )
+  device?: DEVICE
+|
+  device? ∉ dom partitionTables
+  device? ∉ dom drives
+  drives′ = drives
+  
 └
 
 needs finishing
@@ -31,18 +84,6 @@ needs finishing
   device?: DEVICE
 |
   device? ∈ dom drives
+  device? ∈ dom partitionTables
+  partitionTables′ = partitionTables
 └
-
-
-#############################
-
-ToDo
-
-FatToImage
-
-remove outer sequence 
-concat the 4 ones that are now the outer ones
-
-ImageToFat
-split main seq into 4 based on the pointers 
-put them all into one seq
