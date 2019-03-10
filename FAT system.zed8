@@ -15,9 +15,10 @@ The char used to mark if the file is deleted
 ---
 1110010 is E5h in hex which is the delete char for FAT 
 ╷
-  DeleteChar: seq( BIT )
+  DeleteChar, Zeros: seq( BIT )
 |
   DeleteChar = ⟨ ONE, ONE, ONE, ZERO, ZERO, ONE, ZERO, ONE  ⟩
+  Zeros = ⟨ ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO  ⟩
 └
 
 
@@ -114,5 +115,5 @@ The entry in the root directory (3rd partition in the FAT disk) has its first ch
   
   ¬( fileName? infix (drives device? 3) ) ⇒ error! = FileNotOnDisk ∧ drives′ = drives 
   ∃char: seq( BIT ) ⦁ (char = head fileName? ∧ fileName? infix (drives device? 3)) ⇒ error! = NoError ∧ ( ∃fileStart: ℕ ⦁ (drives device? 3) fileStart = char ∧ (drives′ device? 3) = (drives device? 3) ⊕ { fileStart ↦ DeleteChar } )
-  
+  ∀entries: ran drives device? 2 ⦁ ⇒ entri
 └
