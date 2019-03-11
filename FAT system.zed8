@@ -16,11 +16,36 @@ The char used to mark if the file is deleted
 1110010 is E5h in hex which is the delete char for FAT 
 ╷
   DeleteChar, Zeros: seq( BIT )
+  SectorLength: ℕ↘1↖
 |
   DeleteChar = ⟨ ONE, ONE, ONE, ZERO, ZERO, ONE, ZERO, ONE  ⟩
   Zeros = ⟨ ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO  ⟩
+  SectorLength = 8
 └
 
+─ function 42 leftassoc ( _ ⊚ _ ) 
+└ 
+
+Converts an 8 bit binary number into decimal
+needs 2 seq( BIT ) to be provided to it but it only actualy uses the first one (x) to do the conversion 
+╷ _ ⊚ _ : seq( BIT ) × seq ( BIT ) → ℕ 
+| 
+  ∀ x, y:  seq( BIT ) ⦁  #x = 8 ∧ x ⊚ y = if x 8 = ONE then 1 + 
+  								  									(if x 7 = ONE then 2 + 
+  																		(if x 6 = ONE then 4 + 
+  						  													(if x 5 = ONE then 8 +  
+  						  														(if x 4 = ONE then 16 + 
+  				  																	(if x 3 = ONE then 32 + 
+  				  																		(if x 2 = ONE then 64 + 
+  				  																			(if x 1 = ONE then 128 else 0) 
+			  		  																	else 0) 
+  										  											else 0) 
+  										  										else 0 )
+  						 	 												else 0 ) 
+  					  													else 0 ) 
+ 			 				  										else 0 )
+  						  										else 0
+└ 
 
 drives - all of the devices that have a fat file system in the world
 partitionTables - all of the partition tables for the drives in the system
@@ -29,9 +54,9 @@ each drive must have 4 partitions and the first one must be 512 sectors long. Ea
 the first partiton offset must be 1 (boot always at the start and index starts at 1) and there must be 4 partition offsets in eact partition table
 ┌ FATworld
   drives: DEVICE → seq( seq( seq( BIT ) ) )
-  partitionTables: DEVICE → seq( ℕ↘1↖ )
+  partitionTables: DEVICE → seq( ℕ )
 |
-  ∀disk: ran drives ⦁ ∀partit: ran disk ⦁ #partit = 4 ∧ #(head partit) = 512 ∧ (∀sector: ran partit ⦁ #sector = 8)  
+  ∀disk: ran drives ⦁ ∀partit: ran disk ⦁ #partit = 4 ∧ #(head partit) = 512 ∧ (∀sector: ran partit ⦁ #sector = SectorLength)  
   ∀offsets: ran partitionTables ⦁ offsets(1) = 1 ∧ #offsets = 4
 └
 
@@ -82,6 +107,15 @@ these sub sequences are then added to the drives releation as a fat file system
   image! = drives device?(1) ⁀ drives device?(2) ⁀ drives device?(3) ⁀ drives device?(4)
 └
 
+⊚ is defined as above 
+image? - the image that the partitions need to be found for
+device? - the device that the image is on
+---
+the device must not already be in the partitionTables releation
+the device must not already be in the drives releation
+drives remaines unchanged through this operation
+
+converts the value of the byte in the numberedd sectors to decimal and adds the partitions to the table releation (the first one is always 1 as it is at the start of the disk)
 ┌ AddPartitionTable
   ΔFATworld
   image?: seq( seq( BIT ) )
@@ -90,6 +124,8 @@ these sub sequences are then added to the drives releation as a fat file system
   device? ∉ dom partitionTables
   device? ∉ dom drives
   drives′ = drives
+  
+   ∃part2, part3, part4: ℕ ⦁ part2 = image? 464 ⊚ image? 464 ∧ part3 = image? 480 ⊚ image? 480 ∧ part4 = image? 496 ⊚ image? 496 ∧ partitionTables′ = partitionTables ∪ { device? ↦ ⟨ 1, part2, part3, part4 ⟩ }
 └
 
 device? - the device that has the file on
@@ -111,9 +147,9 @@ The entry in the root directory (3rd partition in the FAT disk) has its first ch
   device? ∈ dom partitionTables
   partitionTables′ = partitionTables
   
-  ∀bytes: ran fileName? ⦁ #bytes = 8
+  ∀bytes: ran fileName? ⦁ #bytes = SectorLength
   
   ¬( fileName? infix (drives device? 3) ) ⇒ error! = FileNotOnDisk ∧ drives′ = drives 
   ∃char: seq( BIT ) ⦁ (char = head fileName? ∧ fileName? infix (drives device? 3)) ⇒ error! = NoError ∧ ( ∃fileStart: ℕ ⦁ (drives device? 3) fileStart = char ∧ (drives′ device? 3) = (drives device? 3) ⊕ { fileStart ↦ DeleteChar } )
-  ∀entries: ran drives device? 2 ⦁ ⇒ entri
+
 └
