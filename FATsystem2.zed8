@@ -1,0 +1,44 @@
+﻿─ section FATsystem2 parents standard_toolkit
+└
+
+─ [ DRIVE, FILENAME, BYTE ] └
+
+STATUS is the flag for each sectors entry in the file allocation table
+─
+  STATUS ::= ONE | ZERO
+└
+
+---
+If a drive is in allDirves then it has to be in each of the partition releations
+┌ FATworld
+  allDrives: 𝔽 DRIVE
+  BootSector: DRIVE → seq( BYTE )
+  FileAllocationTable: DRIVE → { ℕ → STATUS }
+  Data: DRIVE → { ℕ → BYTE }
+  RootDirectory: DRIVE → ( FILENAME → ℕ )
+|
+  ∀d: allDrives ⦁ d ∈ allDrives ⇒ ( d ∈ dom FileAllocationTable ∧ d ∈ dom Data ∧ d ∈ dom RootDirectory ∧ d ∈ dom BootSector )
+└
+
+┌ FATworldInit
+  FATworld ′
+|
+  allDrives′ = ∅
+└
+
+┌ AddDrive
+  ΔFATworld
+  newdrives?: DRIVE
+|
+  newdrives? ∉ allDrives
+  allDrives′ = allDrives ∪ { newdrives? }
+└
+
+┌ DeleteFile
+  ΔFATworld
+  drive?: DRIVE
+  FileName?: FILENAME
+|
+  drive? ∈ allDrives
+  FileName? ∈ dom (RootDirectory drive?)  
+└
