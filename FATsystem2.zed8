@@ -19,8 +19,8 @@ Data - represented by a cluster pointer mapping to a byte of data
 RootDirectory - represented by filenames mapped to pointers. No other file information will be stored in this specification - NOTE there can only be one file with any given file name
 ---
 If a drive is in allDirves then it has to be in each of the partition releations
-If a file is in the root directory then it is also in the sectorsInFile releation and the first pointer in the sequence is the pointer that is in the root directory
 Each row in the FAT can only have 1 entry per row
+If a file is in the root directory then it is also in the sectorsInFile releation and the first pointer in the sequence is the pointer that is in the root directory
 ┌ FATworld
   allDrives: 𝔽 DRIVE
   BootSector: DRIVE → seq( BYTE )
@@ -30,9 +30,9 @@ Each row in the FAT can only have 1 entry per row
   
   sectorsInFile: DRIVE → ( FILENAME → seq( ClusterPointer ) )
 |
-  ∀drive: allDrives ⦁ drive ∈ allDrives ⇒ ( drive ∈ dom FileAllocationTable ∧ drive ∈ dom Data ∧ drive ∈ dom RootDirectory ∧ drive ∈ dom BootSector )
-  ∀drive: allDrives ⦁ ∀FileName: dom ( RootDirectory drive ) ⦁ FileName ∈ dom (sectorsInFile drive) ∧ head(sectorsInFile drive FileName) = (RootDirectory drive) FileName
-  ∀drive: allDrives ⦁ ∀fatEntry: ran ( FileAllocationTable drive ) ⦁ #fatEntry = 1
+  dom BootSector = allDrives ∧ dom FileAllocationTable = allDrives ∧ dom Data = allDrives ∧ dom RootDirectory = allDrives ∧ dom sectorsInFile = allDrives 
+  ∀drive: allDrives ⦁ ∀FATentry: ran ( FileAllocationTable drive ) ⦁ #FATentry = 1
+  ∀drive: allDrives ⦁ ∀FileName: dom ( RootDirectory drive ) ⦁ FileName ∈ dom (sectorsInFile drive) ∧ head( sectorsInFile drive FileName ) = ( RootDirectory drive ) FileName
 └
 
 ┌ FATworldInit
@@ -43,6 +43,7 @@ Each row in the FAT can only have 1 entry per row
   FileAllocationTable′ = ∅
   Data′ = ∅
   RootDirectory′ = ∅
+  sectorsInFile′ = ∅
 └
 
 ┌ AddDrive
@@ -50,30 +51,30 @@ Each row in the FAT can only have 1 entry per row
   newDrive?: DRIVE
   boot?: seq( BYTE )
   fat?: seq( ClusterPointer → STATUS )
-  data?: 𝔽(ClusterPointer → BYTE)
-  root?: 𝔽(FILENAME → ClusterPointer)
-  allFilePointers?: 𝔽(FILENAME → seq( ClusterPointer ))
+  data?: ClusterPointer → BYTE
+  root?: FILENAME → ClusterPointer
+  allFilePointers?: FILENAME → seq( ClusterPointer )
 |
   newDrive? ∉ allDrives
   
   allDrives′ = allDrives ∪ { newDrive? }
   BootSector′ = BootSector ∪ { newDrive? ↦ boot? }
   FileAllocationTable′ = FileAllocationTable ∪ { newDrive? ↦ fat? }
-  ∀sector: ClusterPointer → BYTE ⦁ sector ∈ data? ∧ Data′ = Data ∪ { newDrive? ↦ sector }
-  ∀rootEntry: FILENAME → ClusterPointer ⦁ rootEntry ∈ root? ∧ RootDirectory′ = RootDirectory ∪ { newDrive? ↦ rootEntry }
+  Data′ = Data ∪ { newDrive? ↦ data? }
+  RootDirectory′ = RootDirectory ∪ { newDrive? ↦ root? }
   
-  ∀FilePointers: FILENAME → seq( ClusterPointer ) ⦁ FilePointers ∈ allFilePointers? ∧ sectorsInFile′ = sectorsInFile ∪ { newDrive? ↦ FilePointers } 
+  sectorsInFile′ = sectorsInFile ∪ { newDrive? ↦ allFilePointers? } 
 └
 
 drive? - the drive has the FAT system that the file is stored on
 FileName? - the name of the file that you want to delete
 error! - used to report if the file is not on the disk
 ---
-the drive must be in the collection of allDrives (by extension it is in the partition releations)
-if the file name is not in the root directory then it reports the error
-if the file name is in the directory so it is the releation that containes the file name is removed from the RootDirectory
+The drive must be in the collection of allDrives (by extension it is in the partition releations)
+If the file name is not in the root directory then it reports the error
+If the file name is in the directory so it is the releation that containes the file name is removed from the RootDirectory
 
-for each row in the FAT that has the same row number as the pointer that used by the current file. It overwrites that rows status to be ZERO
+For each row in the FAT that has the same row number as the pointer that used by the current file. It overwrites that rows status to be ZERO
 ┌ DeleteFile
   ΔFATworld
   drive?: DRIVE
