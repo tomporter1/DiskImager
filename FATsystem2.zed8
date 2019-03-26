@@ -1,44 +1,90 @@
 ﻿─ section FATsystem2 parents standard_toolkit
 └
 
-─ [ DRIVE, FILENAME, BYTE ] └
+─ [ DRIVE, FILENAME, BYTE, ClusterPointer ] └
 
 STATUS is the flag for each sectors entry in the file allocation table
 ─
   STATUS ::= ONE | ZERO
 └
 
+ERROR - types of error that can be reported by the system
+─
+  ERROR ::= FileNotOnDisk | NoError
+└
+
+BootSector - Maps drives to a sequence of bytes
+FileAllocationTable - represented by a sequence of ClusterPointer mapped to a status flag (in this case 0 or 1 for free or busy). The position in the sequence represents the row of the FAT
+Data - represented by a cluster pointer mapping to a byte of data
+RootDirectory - represented by filenames mapped to pointers. No other file information will be stored in this specification - NOTE there can only be one file with any given file name
 ---
 If a drive is in allDirves then it has to be in each of the partition releations
+If a file is in the root directory then it is also in the sectorsInFile releation and the first pointer in the sequence is the pointer that is in the root directory
+Each row in the FAT can only have 1 entry per row
 ┌ FATworld
   allDrives: 𝔽 DRIVE
   BootSector: DRIVE → seq( BYTE )
-  FileAllocationTable: DRIVE → { ℕ → STATUS }
-  Data: DRIVE → { ℕ → BYTE }
-  RootDirectory: DRIVE → ( FILENAME → ℕ )
+  FileAllocationTable: DRIVE → seq( ClusterPointer → STATUS )
+  Data: DRIVE → ( ClusterPointer → BYTE )
+  RootDirectory: DRIVE → ( FILENAME → ClusterPointer )
+  
+  sectorsInFile: DRIVE → ( FILENAME → seq( ClusterPointer ) )
 |
-  ∀d: allDrives ⦁ d ∈ allDrives ⇒ ( d ∈ dom FileAllocationTable ∧ d ∈ dom Data ∧ d ∈ dom RootDirectory ∧ d ∈ dom BootSector )
+  ∀drive: allDrives ⦁ drive ∈ allDrives ⇒ ( drive ∈ dom FileAllocationTable ∧ drive ∈ dom Data ∧ drive ∈ dom RootDirectory ∧ drive ∈ dom BootSector )
+  ∀drive: allDrives ⦁ ∀FileName: dom ( RootDirectory drive ) ⦁ FileName ∈ dom (sectorsInFile drive) ∧ head(sectorsInFile drive FileName) = (RootDirectory drive) FileName
+  ∀drive: allDrives ⦁ ∀fatEntry: ran ( FileAllocationTable drive ) ⦁ #fatEntry = 1
 └
 
 ┌ FATworldInit
   FATworld ′
 |
   allDrives′ = ∅
+  BootSector′ = ∅
+  FileAllocationTable′ = ∅
+  Data′ = ∅
+  RootDirectory′ = ∅
 └
 
 ┌ AddDrive
   ΔFATworld
-  newdrives?: DRIVE
+  newDrive?: DRIVE
+  boot?: seq( BYTE )
+  fat?: seq( ClusterPointer → STATUS )
+  data?: 𝔽(ClusterPointer → BYTE)
+  root?: 𝔽(FILENAME → ClusterPointer)
+  allFilePointers?: 𝔽(FILENAME → seq( ClusterPointer ))
 |
-  newdrives? ∉ allDrives
-  allDrives′ = allDrives ∪ { newdrives? }
+  newDrive? ∉ allDrives
+  
+  allDrives′ = allDrives ∪ { newDrive? }
+  BootSector′ = BootSector ∪ { newDrive? ↦ boot? }
+  FileAllocationTable′ = FileAllocationTable ∪ { newDrive? ↦ fat? }
+  ∀sector: ClusterPointer → BYTE ⦁ sector ∈ data? ∧ Data′ = Data ∪ { newDrive? ↦ sector }
+  ∀rootEntry: FILENAME → ClusterPointer ⦁ rootEntry ∈ root? ∧ RootDirectory′ = RootDirectory ∪ { newDrive? ↦ rootEntry }
+  
+  ∀FilePointers: FILENAME → seq( ClusterPointer ) ⦁ FilePointers ∈ allFilePointers? ∧ sectorsInFile′ = sectorsInFile ∪ { newDrive? ↦ FilePointers } 
 └
 
+drive? - the drive has the FAT system that the file is stored on
+FileName? - the name of the file that you want to delete
+error! - used to report if the file is not on the disk
+---
+the drive must be in the collection of allDrives (by extension it is in the partition releations)
+if the file name is not in the root directory then it reports the error
+if the file name is in the directory so it is the releation that containes the file name is removed from the RootDirectory
+
+for each row in the FAT that has the same row number as the pointer that used by the current file. It overwrites that rows status to be ZERO
 ┌ DeleteFile
   ΔFATworld
   drive?: DRIVE
   FileName?: FILENAME
+  error!: ERROR
+  FirstPointer: ClusterPointer
 |
   drive? ∈ allDrives
-  FileName? ∈ dom (RootDirectory drive?)  
+  FileName? ∉ dom (RootDirectory drive?) ⇒ error! = FileNotOnDisk
+  FileName? ∈ dom (RootDirectory drive?) ⇒ error! = NoError ∧ RootDirectory′ drive? = RootDirectory drive? ∖ { FileName? ↦ ((RootDirectory drive?) FileName?) }
+  
+  ∀pointer: ran (sectorsInFile drive? FileName?) ⦁ ∀rowNum: dom( FileAllocationTable drive? ) ⦁ pointer ∈ dom ( ( FileAllocationTable drive? ) rowNum ) ⇒
+  																																	  			  ( FileAllocationTable drive? ) rowNum  = ( FileAllocationTable′ drive? ) rowNum ⊕ { pointer ↦ ZERO }
 └
