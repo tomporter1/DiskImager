@@ -12,11 +12,14 @@ deadbox - the device remains unchanged throught the image creation
 pTwo - the device may have been changed during this process. It is not known how much of the data has been changed
 remote - the data is on something like a server so NON of the data is origional
 corrupted - a set of all sector addresses that are corrupted
+SectorLength - a constant for the length of a sector for the imager. This will be set to 8 bits (byte)
 ╷
   deadbox, pTwo, remote: 𝔽 DEVICE
   corrupted: DEVICE → 𝔽 ℕ
+  SectorLength: ℕ
 |
   deadbox ∩ pTwo ∩ remote = ∅
+  SectorLength = 8
 └
 
 drives map a dirve to a releation that maps a sequence of sectors (represented as a sequence of bits). The position in the sequence is the address for that sector
@@ -82,7 +85,7 @@ adds the device with the new image on it to the images releation
   images′ = images ⊕ { source? ↦ target? }
 └
 
-this operation will not find a bit pattern that spans different sectors
+this operation will not find a bit pattern that does NOT spans different sectors
 
 drive? - the drive that has the image that you want to search on it
 bitPattern - the pattern of bits that you want to search for 
@@ -94,9 +97,32 @@ patternLocation! - a set of sector addresses that have that bit pattern in it
   ΞWorld
   drive?: DEVICE
   bitPattern?: seq( BIT )
-  patternLocation!: 𝔽 ℕ
+  patternSectorNums!: 𝔽 ℕ
 |
   drive? ∈ dom drives
-  bitPattern? = ∅ ⇒ patternLocation! = ∅
-  ∀sectorAddress: dom (drives drive?) ⦁ bitPattern? infix (drives drive? sectorAddress) ⇒ patternLocation! = patternLocation! ∪ { sectorAddress }
+  #bitPattern? ≤ SectorLength
+  bitPattern? = ∅ ⇒ patternSectorNums! = ∅
+  ∀sectorAddress: dom (drives drive?) ⦁ bitPattern? infix (drives drive? sectorAddress) ⇒ patternSectorNums! = patternSectorNums! ∪ { sectorAddress }
+└
+
+this operation will not find a bit pattern that spans different sectors
+
+drive? - the drive that has the image that you want to search on it
+bitPattern - the pattern of bits that you want to search for 
+patternStartOffset! - the bit offset for the starting point of the bit pattern that you are searching for
+startingSectorNum! - the number of the sector that the bitpattern starts in 
+---
+The drive must be in the system
+For alll sector addresses there exsist an image that is the concatenation of all of the sectors in the image of drive?. If the bit pattern is in the concatenated image then the starting locations are reported back to the user
+	Does NOT report the bit offset, rather nondeterministicly choses a natural number to report
+┌ SearchImage2
+  ΞWorld
+  drive?: DEVICE
+  bitPattern?: seq( BIT )
+  patternStartOffset!: ℕ
+  startingSectorNum!: ℕ
+|
+  drive? ∈ dom drives
+  ∀sectorAddress: dom (drives drive?) ⦁ ∃image: seq( BIT ) ⦁ ∃Location: ℕ | bitPattern? infix image ⇒ patternStartOffset! = Location ∧ startingSectorNum! = (Location − (Location mod SectorLength)) div sectorAddress ⦁ 
+  																													  image = image ⁀ drives drive? sectorAddress 
 └

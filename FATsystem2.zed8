@@ -1,16 +1,11 @@
 ﻿─ section FATsystem2 parents standard_toolkit
 └
 
-─ [ DRIVE, FILENAME, BYTE, ClusterPointer ] └
+─ [ DRIVE, FILENAME, BYTE ] └
 
 STATUS is the flag for each sectors entry in the file allocation table
 ─
   STATUS ::= ONE | ZERO
-└
-
-ERROR - types of error that can be reported by the system
-─
-  ERROR ::= FileNotOnDisk | NoError
 └
 
 BootSector - Maps drives to a sequence of bytes
@@ -24,17 +19,18 @@ If a file is in the root directory then it is also in the sectorsInFile releatio
 ┌ FATworld
   allDrives: 𝔽 DRIVE
   BootSector: DRIVE → seq( BYTE )
-  FileAllocationTable: DRIVE → seq( ClusterPointer → STATUS )
-  Data: DRIVE → ( ClusterPointer → BYTE )
-  RootDirectory: DRIVE → ( FILENAME → ClusterPointer )
+  FileAllocationTable: DRIVE → seq( ℕ → STATUS )
+  Data: DRIVE → ( ℕ → BYTE )
+  RootDirectory: DRIVE → ( FILENAME → ℕ )
   
-  sectorsInFile: DRIVE → ( FILENAME → seq( ClusterPointer ) )
+  sectorsInFile: DRIVE → ( FILENAME → seq( ℕ ) )
 |
   dom BootSector = allDrives ∧ dom FileAllocationTable = allDrives ∧ dom Data = allDrives ∧ dom RootDirectory = allDrives ∧ dom sectorsInFile = allDrives 
   ∀drive: allDrives ⦁ ∀FATentry: ran ( FileAllocationTable drive ) ⦁ #FATentry = 1
   ∀drive: allDrives ⦁ ∀FileName: dom ( RootDirectory drive ) ⦁ FileName ∈ dom (sectorsInFile drive) ∧ head( sectorsInFile drive FileName ) = ( RootDirectory drive ) FileName
 └
 
+initialises all of the releations to the empty set
 ┌ FATworldInit
   FATworld ′
 |
@@ -46,24 +42,93 @@ If a file is in the root directory then it is also in the sectorsInFile releatio
   sectorsInFile′ = ∅
 └
 
+newDrive? - the drive that you want to add the FAT system to
+boot? - the sequence of bytes that make up the boot partition
+numOfClusters? - the number of clusters that will be in the data partition - must be a positive natural
+---
+the newDrive must not be in the system already
+
+adds the new drive to allDrives
+
+Adds the new drive to the partition releations
+	Data is set up to have the number of clusters that have been set by the input
+	
+Adds the drive to sectorsInFile
 ┌ AddDrive
   ΔFATworld
   newDrive?: DRIVE
   boot?: seq( BYTE )
-  fat?: seq( ClusterPointer → STATUS )
-  data?: ClusterPointer → BYTE
-  root?: FILENAME → ClusterPointer
-  allFilePointers?: FILENAME → seq( ClusterPointer )
+  numOfClusters?: ℕ↘1↖
 |
   newDrive? ∉ allDrives
   
   allDrives′ = allDrives ∪ { newDrive? }
   BootSector′ = BootSector ∪ { newDrive? ↦ boot? }
-  FileAllocationTable′ = FileAllocationTable ∪ { newDrive? ↦ fat? }
-  Data′ = Data ∪ { newDrive? ↦ data? }
-  RootDirectory′ = RootDirectory ∪ { newDrive? ↦ root? }
+  FileAllocationTable′ = FileAllocationTable ∪ { newDrive? ↦ ∅ }
+  ∃data: ℕ → BYTE | Data′ = Data ∪ { newDrive? ↦ data } ⦁ #data = numOfClusters? ∧ max dom data ≤ numOfClusters? 
+  RootDirectory′ = RootDirectory ∪ { newDrive? ↦ ∅ }
   
-  sectorsInFile′ = sectorsInFile ∪ { newDrive? ↦ allFilePointers? } 
+  sectorsInFile′ = sectorsInFile ∪ { newDrive? ↦ ∅ } 
+└
+
+name? - the name of the file to add
+drive? - the drive that you want to add the file to
+---
+the drive must be in the FATworld system
+the file name must not already be in the RootDirectory
+an enty is added to the root directory mapping the name to  acluster address. This cluster address must be a cluster that is on the drive and the cluster must be free (status of 0) in the FileAllocationTable
+┌ AddFileToROOT
+  ΔFATworld
+  name?: FILENAME
+  drive?: DRIVE
+|
+  drive? ∈ allDrives
+  name? ∉ dom (RootDirectory drive?)  
+  ∃freeCluster: ℕ ⦁ ∃FATrow:ℕ | RootDirectory′ drive? = RootDirectory drive? ∪ { name? ↦ freeCluster } ⦁ freeCluster ∈ dom ( Data drive?) ∧ ( ( FileAllocationTable drive? ) FATrow ) freeCluster = ZERO
+└
+
+name? - the name of the file to add
+drive? - the drive that you want to add the file to
+newData? - the sequence of bytes that is the new file
+---
+the drive must be in the FATworld system
+the file name must not already be in the RootDirectory
+Finds a disjoint sequence of pointers that are marked as free (avaible) in the FAT and uses these pointers to override the bytes in Data for these pointers. The order of the data is preserved by this sequence. Also saves this sequence to sectorsInFile
+┌ AddFileDATA
+  ΔFATworld
+  name?: FILENAME
+  drive?: DRIVE
+  newData?:seq( BYTE )
+  freeDataPoints: 𝔽 ℕ
+|
+  drive? ∈ allDrives
+  name? ∈ dom (RootDirectory drive?)   
+  ∃freePoints: seq( ℕ ) ⦁ freePoints ∩ freePoints = ∅ ∧ max ( ran freePoints ) ≤ max ( dom ( Data drive? ) ) ∧ #freePoints = #newData? ∧
+  									  ( ∀point: ran freePoints ⦁ ZERO ∈ ran ( FileAllocationTable drive? point ) ∧ Data′ drive? = Data drive? ⊕ { point ↦ newData? (freePoints point) } ∧ sectorsInFile′ drive? = sectorsInFile drive? ∪ { name? ↦ freePoints }) 
+└
+  ∃clusters: seq( ℕ ) | sectorsInFile′ drive? = sectorsInFile drive? ∪ { name? ↦ clusters } ⦁ #clusters = #newData? ∧ ∀clusterPointer: ran clusters ⦁ ∃FATrow:ℕ ⦁ clusterPointer ∈ dom ( Data drive?) ∧ ( ( FileAllocationTable drive? ) FATrow) clusterPointer = ZERO
+  
+name? - the name of the file to add
+drive? - the drive that you want to add the file to
+---
+the drive must be in the FATworld system
+the file name must already be in the RootDirectory
+the file must already be in sectorsInFile
+Updates each clusters entry in the FAT to show that it is busy and changes its "next pointer" to point to the next sequence in the file
+	"(sectorsInFile drive? name?) FATrow) + 1" gets the next cluster in the sequence of all clusters in the file 
+	if it is the last sector in the file the next pointer in FAT will be set to "-1". If it is less then it will  be set to the next pointer in the file
+┌ AddFileToFAT
+  ΔFATworld
+  name?: FILENAME
+  drive?: DRIVE
+|
+  drive? ∈ allDrives
+  name? ∈ dom (RootDirectory drive?)
+  name? ∈ dom (sectorsInFile drive?)
+  ∀FATrow: dom ( FileAllocationTable drive? ) ⦁ ∃newFATrow: ℕ → STATUS | FileAllocationTable′ drive?= FileAllocationTable drive? ⊕ { FATrow ↦ newFATrow } 
+  																												  ⦁ FATrow ∈ ran (sectorsInFile drive? name?) ∧ 
+  																												     sectorsInFile drive? name? FATrow = max dom (sectorsInFile drive? name?) ⇒ (newFATrow = FileAllocationTable drive? FATrow ⊕ { -1 ↦ ONE }) ∧ 
+  																												     sectorsInFile drive? name? FATrow < max dom (sectorsInFile drive? name?) ⇒ (newFATrow = FileAllocationTable drive? FATrow ⊕ { ( (sectorsInFile drive? name?) FATrow ) + 1 ↦ ONE })
 └
 
 drive? - the drive has the FAT system that the file is stored on
@@ -73,19 +138,28 @@ error! - used to report if the file is not on the disk
 The drive must be in the collection of allDrives (by extension it is in the partition releations)
 If the file name is not in the root directory then it reports the error
 If the file name is in the directory so it is the releation that containes the file name is removed from the RootDirectory
-
 For each row in the FAT that has the same row number as the pointer that used by the current file. It overwrites that rows status to be ZERO
+	"( FileAllocationTable′ drive? ) remCluster ⊕ { 0  ↦ ZERO }" updates the entry for the row that matches with the removed cluster (next = 0, status = 0). Next is set to 0 as it does not matter what the pointer is set to as the file is deleted
 ┌ DeleteFile
   ΔFATworld
   drive?: DRIVE
-  FileName?: FILENAME
-  error!: ERROR
-  FirstPointer: ClusterPointer
+  name?: FILENAME
+  FirstPointer: ℕ
 |
   drive? ∈ allDrives
-  FileName? ∉ dom (RootDirectory drive?) ⇒ error! = FileNotOnDisk
-  FileName? ∈ dom (RootDirectory drive?) ⇒ error! = NoError ∧ RootDirectory′ drive? = RootDirectory drive? ∖ { FileName? ↦ ((RootDirectory drive?) FileName?) }
-  
-  ∀pointer: ran (sectorsInFile drive? FileName?) ⦁ ∀rowNum: dom( FileAllocationTable drive? ) ⦁ pointer ∈ dom ( ( FileAllocationTable drive? ) rowNum ) ⇒
-  																																	  			  ( FileAllocationTable drive? ) rowNum  = ( FileAllocationTable′ drive? ) rowNum ⊕ { pointer ↦ ZERO }
+  name? ∈ dom (RootDirectory drive?) 
+  RootDirectory′ drive? = RootDirectory drive? ∖ { name? ↦ ((RootDirectory drive?) name?) }  
+  ∀remCluster: ran (sectorsInFile drive? name?) ⦁ ∀rowNum: dom( FileAllocationTable drive? ) ⦁ remCluster ∈ dom ( ( FileAllocationTable drive? ) rowNum ) ⇒ ( FileAllocationTable drive? ) remCluster  = ( FileAllocationTable′ drive? ) remCluster ⊕ { 0  ↦ ZERO }
 └
+
+┌ ReadFile
+  ΞFATworld
+  name?: FILENAME
+  drive?: DRIVE
+  file!: seq( BYTE )
+|
+  drive? ∈ allDrives
+  name? ∈ dom (RootDirectory drive?) 
+  file! = ∅
+└
+
