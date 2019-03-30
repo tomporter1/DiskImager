@@ -6,6 +6,9 @@
 ─
   BIT ::= ONE | ZERO
 └
+─
+  BOOL ::= TRUE | FALSE
+└
 
 The three types of devices that imaging can be done in
 deadbox - the device remains unchanged throught the image creation
@@ -115,14 +118,19 @@ startingSectorNum! - the number of the sector that the bitpattern starts in
 The drive must be in the system
 For alll sector addresses there exsist an image that is the concatenation of all of the sectors in the image of drive?. If the bit pattern is in the concatenated image then the starting locations are reported back to the user
 	Does NOT report the bit offset, rather nondeterministicly choses a natural number to report
+	
+Reports if the bit pattern is in the image or not
 ┌ SearchImage2
   ΞWorld
   drive?: DEVICE
   bitPattern?: seq( BIT )
   patternStartOffset!: ℕ
   startingSectorNum!: ℕ
+  patternFound!: BOOL
 |
   drive? ∈ dom drives
   ∀sectorAddress: dom (drives drive?) ⦁ ∃image: seq( BIT ) ⦁ ∃Location: ℕ | bitPattern? infix image ⇒ patternStartOffset! = Location ∧ startingSectorNum! = (Location − (Location mod SectorLength)) div sectorAddress ⦁ 
   																													  image = image ⁀ drives drive? sectorAddress 
+  																													  
+   ∀sectorAddress: dom (drives drive?) ⦁ ∃image: seq( BIT ) ⦁ ( ( bitPattern? infix image ⇒ patternFound! = TRUE  ) ∨  (¬(bitPattern? infix image) ⇒ patternFound! = FALSE) ) ∧ image = image ⁀ drives drive? sectorAddress
 └
