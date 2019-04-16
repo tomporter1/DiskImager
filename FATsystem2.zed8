@@ -18,12 +18,12 @@ Each row in the FAT can only have 1 entry per row
 If a file is in the root directory, then it is also in the clustersInFile relation and the first pointer in the sequence is the pointer that is in the root directory
 ┌ FATworld
   allDrives: 𝔽 DRIVE
-  BootSector: DRIVE → seq( BYTE )
-  FileAllocationTable: DRIVE → seq( STATUS → ℕ)
-  Data: DRIVE → seq( BYTE )
-  RootDirectory: DRIVE → ( FILENAME → ℕ↘1↖ )
+  BootSector: DRIVE ↣ seq( BYTE )
+  FileAllocationTable: DRIVE ↣ seq( STATUS ↣ ℕ)
+  Data: DRIVE ↣ seq( BYTE )
+  RootDirectory: DRIVE ↣ ( FILENAME ↣ ℕ↘1↖ )
   
-  clustersInFile: DRIVE → ( FILENAME → seq( ℕ↘1↖ ) )
+  clustersInFile: DRIVE ↣ ( FILENAME ↣ seq( ℕ↘1↖ ) )
 |
   dom BootSector = allDrives ∧ dom FileAllocationTable = allDrives ∧ dom Data = allDrives ∧ dom RootDirectory = allDrives ∧ dom clustersInFile = allDrives 
   ∀drive: allDrives ⦁ ∀FATentry: ran ( FileAllocationTable drive ) ⦁ #FATentry = 1
@@ -47,28 +47,44 @@ boot? - the sequence of bytes that make up the boot partition
 numOfClusters? - the number of clusters that will be in the data partition - must be a positive natural
 ---
 the newDrive must not be in the system already
-
 adds the new drive to allDrives
-
 Adds the new drive to the partition relations
-	Data is set up to have the number of clusters that have been set by the input
-	
+	Data is set up to have the number of clusters that have been set by the input	
 Adds the drive to clustersInFile
-┌ AddDrive
+┌ AddNewDrive
   ΔFATworld
   newDrive?: DRIVE
   boot?: seq( BYTE )
   numOfClusters?: ℕ↘1↖
 |
-  newDrive? ∉ allDrives
-  
+  newDrive? ∉ allDrives  
   allDrives′ = allDrives ∪ { newDrive? }
   BootSector′ = BootSector ∪ { newDrive? ↦ boot? }
   FileAllocationTable′ = FileAllocationTable ∪ { newDrive? ↦ ∅ }
   ∃data: ℕ → BYTE | Data′ = Data ∪ { newDrive? ↦ data } ⦁ #data = numOfClusters? ∧ max dom data ≤ numOfClusters? 
-  RootDirectory′ = RootDirectory ∪ { newDrive? ↦ ∅ }
-  
+  RootDirectory′ = RootDirectory ∪ { newDrive? ↦ ∅ }  
   clustersInFile′ = clustersInFile ∪ { newDrive? ↦ ∅ } 
+└
+
+This operation works like AddNewDrive but it is for a drive that already has data stored on it. It needs the partition information given to it for it to run
+┌ AddExistingDrive
+  ΔFATworld
+  newDrive?: DRIVE
+  boot?: seq( BYTE )
+  fat?: seq( STATUS ↣ ℕ)
+  data?: ℕ↘1↖ ↣ BYTE
+  root?: FILENAME ↣ ℕ↘1↖
+  allFilePointers?: FILENAME ↣ seq( ℕ↘1↖ )
+|
+  newDrive? ∉ allDrives
+
+  allDrives′ = allDrives ∪ { newDrive? }
+  BootSector′ = BootSector ∪ { newDrive? ↦ boot? }
+  FileAllocationTable′ = FileAllocationTable ∪ { newDrive? ↦ fat? }
+  Data′ = Data ∪ { newDrive? ↦ data? }
+  RootDirectory′ = RootDirectory ∪ { newDrive? ↦ root? }
+  
+  clustersInFile′ = clustersInFile ∪ { newDrive? ↦ allFilePointers? }
 └
 
 name? - the name of the file to add
