@@ -5,7 +5,7 @@
 
 STATUS is the flag for each cluster's entry in the file allocation table. ZERO = available, ONE = busy  
 ─
-  STATUS ::= ONE | ZERO
+  STATUS ::= USED | FREE | CORRUPTED | RESERVED | EOF
 └
 
 BootSector - Maps drives to a sequence of bytes
@@ -13,14 +13,14 @@ FileAllocationTable - represented by a sequence of ClusterPointer mapped to a st
 Data - represented by a cluster pointer mapping to a byte of data
 RootDirectory - represented by filenames mapped to pointers. No other file information will be stored in this specification - NOTE there can only be one file with any given file name
 ---
-If a drive is in allDirves then it has to be in each of the partition releations
+If a drive is in allDirves then it must be in each of the partition relations
 Each row in the FAT can only have 1 entry per row
-If a file is in the root directory then it is also in the clustersInFile releation and the first pointer in the sequence is the pointer that is in the root directory
+If a file is in the root directory, then it is also in the clustersInFile relation and the first pointer in the sequence is the pointer that is in the root directory
 ┌ FATworld
   allDrives: 𝔽 DRIVE
   BootSector: DRIVE → seq( BYTE )
-  FileAllocationTable: DRIVE → seq( ℕ↘1↖ → STATUS )
-  Data: DRIVE → ( ℕ↘1↖ → BYTE )
+  FileAllocationTable: DRIVE → seq( STATUS → ℕ)
+  Data: DRIVE → seq( BYTE )
   RootDirectory: DRIVE → ( FILENAME → ℕ↘1↖ )
   
   clustersInFile: DRIVE → ( FILENAME → seq( ℕ↘1↖ ) )
@@ -30,7 +30,7 @@ If a file is in the root directory then it is also in the clustersInFile releati
   ∀drive: allDrives ⦁ ∀FileName: dom ( RootDirectory drive ) ⦁ FileName ∈ dom (clustersInFile drive) ∧ head( clustersInFile drive FileName ) = ( RootDirectory drive ) FileName
 └
 
-initialises all of the releations to the empty set
+initialises all the relations to the empty set
 ┌ FATworldInit
   FATworld ′
 |
@@ -50,7 +50,7 @@ the newDrive must not be in the system already
 
 adds the new drive to allDrives
 
-Adds the new drive to the partition releations
+Adds the new drive to the partition relations
 	Data is set up to have the number of clusters that have been set by the input
 	
 Adds the drive to clustersInFile
@@ -76,7 +76,7 @@ drive? - the drive that you want to add the file to
 ---
 the drive must be in the FATworld system
 the file name must not already be in the RootDirectory
-an enty is added to the root directory mapping the name to  acluster address. This cluster address must be a cluster that is on the drive and the cluster must be free (status of 0) in the FileAllocationTable
+an entry is added to the root directory mapping the name to a cluster address. This cluster address must be a cluster that is on the drive and the cluster must be free (status of 0) in the FileAllocationTable
 ┌ AddFileToROOT
   ΔFATworld
   name?: FILENAME
@@ -85,7 +85,7 @@ an enty is added to the root directory mapping the name to  acluster address. Th
   drive? ∈ allDrives
   name? ∉ dom ( RootDirectory drive? )  
   FileAllocationTable = FileAllocationTable′ ∧ Data = Data′ ∧ BootSector′ = BootSector
-  ∃freeCluster: ℕ ⦁ ∃FATrow:ℕ | RootDirectory′ drive? = RootDirectory drive? ∪ { name? ↦ freeCluster } ⦁ freeCluster ∈ dom ( Data drive? ) ∧ ( ( FileAllocationTable drive? ) FATrow ) freeCluster = ZERO
+  ∃freeCluster: ℕ ⦁ ∃FATrow:ℕ | RootDirectory′ drive? = RootDirectory drive? ∪ { name? ↦ freeCluster } ⦁ freeCluster ∈ dom ( Data drive? ) ∧ ( ( FileAllocationTable drive? ) FATrow ) FREE = freeCluster
 └
 
 name? - the name of the file to add
@@ -95,7 +95,7 @@ newData? - the sequence of bytes that is the new file
 the drive must be in the FATworld system
 the file name must not already be in the RootDirectory
 the file must not already be in clustersInFile
-Finds a disjoint sequence of pointers that are marked as free (avaible) in the FAT and uses these pointers to override the bytes in Data for these pointers. The order of the data is preserved by this sequence. Also saves this sequence to clustersInFile
+Finds a disjoint sequence of pointers that are marked as free (available) in the FAT and uses these pointers to override the bytes in Data for these pointers. The order of the data is preserved by this sequence. Also saves this sequence to clustersInFile
 ┌ AddFileDATA
   ΔFATworld
   name?: FILENAME
@@ -108,7 +108,7 @@ Finds a disjoint sequence of pointers that are marked as free (avaible) in the F
   name? ∉ dom ( clustersInFile drive? )
   FileAllocationTable = FileAllocationTable′ ∧ BootSector′ = BootSector
   ∃freePoints: seq( ℕ ) ⦁ freePoints ∩ freePoints = ∅ ∧ max ( ran freePoints ) ≤ max ( dom ( Data drive? ) ) ∧ #freePoints = #newData? ∧
-  									  ( ∀point: ran freePoints ⦁ ZERO ∈ ran ( FileAllocationTable drive? point ) ∧ Data′ drive? = Data drive? ⊕ { point ↦ newData? (freePoints point) } ∧ clustersInFile′ drive? = clustersInFile drive? ∪ { name? ↦ freePoints }) 
+  									  ( ∀point: ran freePoints ⦁ FREE ∈ dom ( FileAllocationTable drive? point ) ∧ Data′ drive? = Data drive? ⊕ { point ↦ newData? (freePoints point) } ∧ clustersInFile′ drive? = clustersInFile drive? ∪ { name? ↦ freePoints }) 
 └
   
 name? - the name of the file to add
@@ -119,7 +119,7 @@ the file name must already be in the RootDirectory
 the file must already be in clustersInFile
 Updates each clusters entry in the FAT to show that it is busy and changes its "next pointer" to point to the next sequence in the file
 	"(clustersInFile drive? name?) FATrow) + 1" gets the next cluster in the sequence of all clusters in the file 
-	if it is the last cluster in the file the next pointer in FAT will be set to "-1". If it is less then it will  be set to the next pointer in the file++
+	if it is the last cluster in the file the next pointer in FAT will be set to "-1". If it is less then it will be set to the next pointer in the file
 ┌ AddFileToFAT
   ΔFATworld
   name?: FILENAME
@@ -129,20 +129,20 @@ Updates each clusters entry in the FAT to show that it is busy and changes its "
   name? ∈ dom ( RootDirectory drive? )
   name? ∈ dom ( clustersInFile drive? )
   Data = Data′ ∧ clustersInFile = clustersInFile′ ∧ BootSector′ = BootSector
-  ∀clusterNum: dom ( FileAllocationTable drive? ) ⦁ ∃updatedFATrow: ℕ → STATUS | FileAllocationTable′ drive?= FileAllocationTable drive? ⊕ { clusterNum ↦ updatedFATrow } 
+  ∀clusterNum: dom ( FileAllocationTable drive? ) ⦁ ∃updatedFATrow: STATUS → ℕ | FileAllocationTable′ drive?= FileAllocationTable drive? ⊕ { clusterNum ↦ updatedFATrow } 
   																												  ⦁ clusterNum ∈ ran (clustersInFile drive? name?) ∧ 
-  																												     clustersInFile drive? name? clusterNum = max dom (clustersInFile drive? name?) ⇒ (updatedFATrow = FileAllocationTable drive? clusterNum ⊕ { -1 ↦ ONE } ) ∧ 
-  																												     clustersInFile drive? name? clusterNum < max dom (clustersInFile drive? name?) ⇒ (updatedFATrow = FileAllocationTable drive? clusterNum ⊕ { ( (clustersInFile drive? name?) clusterNum ) + 1 ↦ ONE })
+  																												     clustersInFile drive? name? clusterNum = max dom (clustersInFile drive? name?) ⇒ (updatedFATrow = FileAllocationTable drive? clusterNum ⊕ { EOF ↦ -1 } ) ∧ 
+  																												     clustersInFile drive? name? clusterNum < max dom (clustersInFile drive? name?) ⇒ (updatedFATrow = FileAllocationTable drive? clusterNum ⊕ { USED ↦ ( (clustersInFile drive? name?) clusterNum ) + 1 })
 └
 
 drive? - the drive has the FAT system that the file is stored on
 FileName? - the name of the file that you want to delete
 ---
-The drive must be in the collection of allDrives (by extension it is in the partition releations)
+The drive must be in the collection of allDrives (by extension it is in the partition relations)
 the file name must be in the root directory
 the file must be a part of clustersInFile
 The data partition will not be changed by this operation
-If the file name is in the directory so it is the releation that containes the file name is removed from the RootDirectory
+If the file name is in the directory so it is the relation that contains the file name is removed from the RootDirectory
 For each row in the FAT that has the same row number as the pointer that used by the current file. It overwrites that rows status to be ZERO
 	"( FileAllocationTable′ drive? ) remCluster ⊕ { 0  ↦ ZERO }" updates the entry for the row that matches with the removed cluster (next = 0, status = 0). Next is set to 0 as it does not matter what the pointer is set to as the file is deleted
 removes the file form clustersInFile 
@@ -157,17 +157,17 @@ removes the file form clustersInFile
   name? ∈ dom ( clustersInFile drive? )
   Data′ = Data ∧ BootSector′ = BootSector
   RootDirectory′ drive? = RootDirectory drive? ∖ { name? ↦ ( ( RootDirectory drive? ) name? ) }  
-  ∀removedCluster: ran ( clustersInFile drive? name? ) ⦁ ∀rowNum: dom( FileAllocationTable drive? ) ⦁ removedCluster ∈ dom ( ( FileAllocationTable drive? ) rowNum ) ⇒ ( FileAllocationTable drive? ) removedCluster  = ( FileAllocationTable′ drive? ) removedCluster ⊕ { 0  ↦ ZERO }
+  ∀removedCluster: ran ( clustersInFile drive? name? ) ⦁ ∀rowNum: dom( FileAllocationTable drive? ) ⦁ removedCluster ∈ ran ( ( FileAllocationTable drive? ) rowNum ) ⇒ ( FileAllocationTable drive? ) removedCluster  = ( FileAllocationTable′ drive? ) removedCluster ⊕ { FREE ↦ 0 }
   clustersInFile′ drive?= clustersInFile drive? ∖ { name? ↦ clustersInFile drive? name? }
 └
 
 drive? - the drive has the FAT system that the file is stored on
-FileName? - the name of the file that you want to delete
+name? - the name of the file that you want to delete
 ---
-The drive must be in the collection of allDrives (by extension it is in the partition releations)
+The drive must be in the collection of allDrives (by extension it is in the partition relations)
 If the file name must be in the root directory
-the file name must be in the clustersInFile releation
-For all of the cluster pointers in the file it gets the corrosponding byte of data and then puts it in the output sequence inthe same position that the pointer was in for clustersInFile
+the file name must be in the clustersInFile relation
+For all of the cluster pointers in the file it gets the corresponding byte of data and then puts it in the output sequence in the same position that the pointer was in for clustersInFile
 ┌ ReadFile
   ΞFATworld
   name?: FILENAME
@@ -178,4 +178,18 @@ For all of the cluster pointers in the file it gets the corrosponding byte of da
   name? ∈ dom ( RootDirectory drive? ) 
   name? ∈ dom ( clustersInFile drive? )
   ∀filePointer: ran( clustersInFile drive? name? ) ⦁ file! = file! ⊕ { ( clustersInFile drive? name? filePointer ) ↦ ( Data drive? filePointer ) }
+└
+
+drive? - the drive has the FAT system that the file is stored on
+ClusterNum? - the number of the cluster that is now corrupted
+---
+the cluster number must be in the range of the sector addresses
+it sets the FAT entry to be corrupted
+┌ SetCurrupted
+  ΔFATworld
+  drive?: DRIVE
+  ClusterNum?: ℕ↘1↖
+|
+  ClusterNum? ∈ dom ( FileAllocationTable drive? )
+  FileAllocationTable′ drive? ClusterNum? = { CORRUPTED ↦ -1 }
 └

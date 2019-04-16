@@ -23,12 +23,12 @@ The char used to mark if the file is deleted
   SectorLength = 8
 └
 
-drives - all of the devices that have a fat file system in the world
-partitionTables - all of the partition tables for the drives in the system
-binConverter - a releation that maps binary numbers (as a sequence) to their equivalent natural numbers
+drives - all the devices that have a fat file system in the world
+partitionTables - all the partition tables for the drives in the system
+binConverter - a relation that maps binary numbers (as a sequence) to their equivalent natural numbers
 ---
-each drive must have 4 partitions and the first one must be 512 sectors long. Each sector in each partiton must be 8 bits (a byte) long 
-the first partiton offset must be 1 (boot always at the start and index starts at 1) and there must be 4 partition offsets in eact partition table
+each drive must have 4 partitions and the first one must be 512 sectors long. Each sector in each partition must be 8 bits (a byte) long 
+the first partition offset must be 1 (boot always at the start and index starts at 1) and there must be 4 partition offsets in exact partition table
 ┌ FATworld
   drives: DEVICE → seq( seq( seq( BIT ) ) )
   partitionTables: DEVICE → seq( ℕ )
@@ -48,7 +48,7 @@ the first partiton offset must be 1 (boot always at the start and index starts a
 change to get the image from the other world schema
 
 image? - the image that is being loaded into system
-device? - the device that the image releates to from the world
+device? - the device that the image relates to from the world
 boot, fat, root, data - temp vars to store the partitions from the image
 ---
 the device must not be already in the system of all drives
@@ -57,7 +57,7 @@ the partition table remains unchanged
 
 all of the partitions are set to be sub sequences of the image
 
-these sub sequences are then added to the drives releation as a fat file system
+these sub sequences are then added to the drives relation as a fat file system
 ┌ ImageToFat
   ΔFATworld
   image?: seq( seq( BIT ) )
@@ -89,12 +89,11 @@ these sub sequences are then added to the drives releation as a fat file system
 image? - the image that the partitions need to be found for
 device? - the device that the image is on
 ---
-the device must not already be in the partitionTables releation
-the device must not already be in the drives releation
-drives remaines unchanged through this operation
+the device must not already be in the partitionTables relation
+the device must not already be in the drives relation
+drives remains unchanged through this operation
 
-⊚ is defined as above 
-converts the value of the byte in the numberedd sectors to decimal and adds the partitions to the table releation (the first one is always 1 as it is at the start of the disk)
+converts the value of the byte in the numbered sectors to decimal and adds the partitions to the table relation (the first one is always 1 as it is at the start of the disk)
 ┌ AddPartitionTable
   ΔFATworld
   image?: seq( seq( BIT ) )
@@ -109,18 +108,18 @@ converts the value of the byte in the numberedd sectors to decimal and adds the 
 └
 
 device? - the device that has the file on
-fielName? - the name of the file to delete as a sequence of bytes
+name? - the name of the file to delete as a sequence of bytes
 ---
 the device must be in the fat system
 
-All of the bytes in the file name must be 8 bits long
+All the bytes in the file name must be 8 bits long
 
-If the file name is not in the root directory then report the error and the drives remain unchanged
+If the file name is not in the root directory, then report the error and the drives remain unchanged
 The entry in the root directory (3rd partition in the FAT disk) has its first char overwritten with the DeleteChar - drives device? 3 is the root directory in device?
 ┌ DeleteFile
   ΔFATworld
   device?: DEVICE
-  fileName?: seq( seq( BIT ) )
+  name?: seq( seq( BIT ) )
   error!: ERROR
 |
   device? ∈ dom drives
@@ -128,9 +127,9 @@ The entry in the root directory (3rd partition in the FAT disk) has its first ch
   partitionTables′ = partitionTables
   binConverter′ = binConverter
   
-  ∀bytes: ran fileName? ⦁ #bytes = SectorLength
+  ∀bytes: ran name? ⦁ #bytes = SectorLength
   
-  ¬( fileName? infix (drives device? 3) ) ⇒ error! = FileNotOnDisk ∧ drives′ = drives 
-  ∃char: seq( BIT ) ⦁ (char = head fileName? ∧ fileName? infix (drives device? 3)) ⇒ error! = NoError ∧ ( ∃fileStart: ℕ ⦁ (drives device? 3) fileStart = char ∧ (drives′ device? 3) = (drives device? 3) ⊕ { fileStart ↦ DeleteChar } )
+  ¬( name? infix (drives device? 3) ) ⇒ error! = FileNotOnDisk ∧ drives′ = drives 
+  ∃char: seq( BIT ) ⦁ (char = head name? ∧ name? infix (drives device? 3)) ⇒ error! = NoError ∧ ( ∃fileStart: ℕ ⦁ (drives device? 3) fileStart = char ∧ (drives′ device? 3) = (drives device? 3) ⊕ { fileStart ↦ DeleteChar } )
 
 └

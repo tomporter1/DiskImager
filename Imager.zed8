@@ -11,9 +11,9 @@
 └
 
 The three types of devices that imaging can be done in
-deadbox - the device remains unchanged throught the image creation
+deadbox - the device remains unchanged through the image creation
 pTwo - the device may have been changed during this process. It is not known how much of the data has been changed
-remote - the data is on something like a server so NON of the data is origional
+remote - the data is on something like a server so NON of the data is original
 corrupted - a set of all sector addresses that are corrupted
 SectorLength - a constant for the length of a sector for the imager. This will be set to 8 bits (byte)
 ╷
@@ -25,16 +25,14 @@ SectorLength - a constant for the length of a sector for the imager. This will b
   SectorLength = 8
 └
 
-drives map a dirve to a releation that maps a sequence of sectors (represented as a sequence of bits). The position in the sequence is the address for that sector
+drives map a drive to a relation that maps a sequence of sectors (represented as a sequence of bits). The position in the sequence is the address for that sector
 images is the new disk images that will be created
 		old unchanged devices → new images
-changed releates the drives to the addresses that have been changed when extracting the data
+changed relates the drives to the addresses that have been changed when extracting the data
 ---
-  dom images ⊆ deadbox -> not sure if this line is correct 
-
 All drives will be in changed (if they are unchanged then they will point to an empty set)
 All of the created images will be in the drives domain
-All of the addresses that have been changed are a subset of all of the addresses on the drive - addresses are the sequence position 
+All the addresses that have been changed are a subset of all of the addresses on the drive - addresses are the sequence position 
 deadboxes have no address that have been changed
 pTwo and remote devices can have any number of addresses changed
 ┌ World
@@ -58,7 +56,7 @@ At initialisation there are no images that have been created
 └
 
 source? - source drive 
-target? - the drive that the image will be releated to
+target? - the drive that the image will be related to
 image - created image
 sDrive - a temp var for the source drive with the changed sectors removed from the sequence
 errorSectors! - set of all addresses where there was a corrupted sector/error
@@ -66,11 +64,12 @@ errorSectors! - set of all addresses where there was a corrupted sector/error
 the target drive has not already been used to create another image
 there is no changes to any device during this operation
 the source drive is unchanged during this operation
-sDrives is equal to the origional source drive without the changed sectors in it
+sDrives is equal to the original source drive without the changed sectors in it
 if the sector is NOT corrupted then the sector is overwritten to the new image in the same position 
-If the sector is corrupted then the address is added to errorSectors! and a sequence of all ZEROs is put in the new image at the address of the corrupted sector
-adds the image releating to the target disk to the drives
-adds the device with the new image on it to the images releation
+If the sector is corrupted, then the address is added to errorSectors! and a sequence of all ZEROs is put in the new image at the address of the corrupted sector
+ensures that the sectors in the source and the image are the same and in the same order except for corrupted sectors
+adds the image relating to the target disk to the drives
+adds the device with the new image on it to the images relation
 ┌ CreateImage
   ΔWorld
   source?, target? : DEVICE
@@ -83,7 +82,9 @@ adds the device with the new image on it to the images releation
   ∀sectorAddress: dom (drives source?) | sDrive = sDrive ⊕ { sectorAddress ↦ (drives source?) sectorAddress } ⦁ sectorAddress ∉ changed source?
   ∀sectorAddress: dom sDrive | image = image ⊕ { sectorAddress ↦ sDrive sectorAddress } ⦁ sectorAddress ∉ (corrupted source?) 
   ∀sectorAddress: dom sDrive ⦁ ∃s: seq( BIT ) | image = image ⊕ { sectorAddress ↦ s } ∧ errorSectors! = errorSectors! ∪ { sectorAddress } ⦁ 
-  												   sectorAddress ∈ (corrupted source?) ∧ #s = #(sDrive sectorAddress) ∧ s ↾ { ONE } = ∅   
+  												   sectorAddress ∈ (corrupted source?) ∧ #s = #(sDrive sectorAddress) ∧ s ↾ { ONE } = ∅ 
+  												   
+  ∀sectorAddress: dom sDrive ⦁ sectorAddress ∉ corrupted source? ⇒ sDrive sectorAddress = image sectorAddress
   drives′ = drives ∪ { target? ↦  image }
   images′ = images ⊕ { source? ↦ target? }
 └
@@ -93,10 +94,10 @@ this operation will not find a bit pattern that does NOT spans different sectors
 drive? - the drive that has the image that you want to search on it
 bitPattern - the pattern of bits that you want to search for 
 ---
-if there is no bit pattern to search for then there is no locations for it in the searched image
+if there is no bit pattern to search for then there are no locations for it in the searched image
 patternLocation! - a set of sector addresses that have that bit pattern in it
 	"infix" matches one sequence into another (like in) -> p119 in z-manual
-┌ SearchImage
+┌ SearchImage2
   ΞWorld
   drive?: DEVICE
   bitPattern?: seq( BIT )
@@ -116,11 +117,11 @@ patternStartOffset! - the bit offset for the starting point of the bit pattern t
 startingSectorNum! - the number of the sector that the bitpattern starts in 
 ---
 The drive must be in the system
-For alll sector addresses there exsist an image that is the concatenation of all of the sectors in the image of drive?. If the bit pattern is in the concatenated image then the starting locations are reported back to the user
-	Does NOT report the bit offset, rather nondeterministicly choses a natural number to report
+For all sector addresses there exists an image that is the concatenation of all of the sectors in the image of drive?. If the bit pattern is in the concatenated image then the starting locations are reported back to the user
+	Does NOT report the bit offset, rather non deterministically choses a natural number to report
 	
 Reports if the bit pattern is in the image or not
-┌ SearchImage2
+┌ SearchImage
   ΞWorld
   drive?: DEVICE
   bitPattern?: seq( BIT )
@@ -132,5 +133,6 @@ Reports if the bit pattern is in the image or not
   ∀sectorAddress: dom (drives drive?) ⦁ ∃image: seq( BIT ) ⦁ ∃Location: ℕ | bitPattern? infix image ⇒ patternStartOffset! = Location ∧ startingSectorNum! = (Location − (Location mod SectorLength)) div sectorAddress ⦁ 
   																													  image = image ⁀ drives drive? sectorAddress 
   																													  
-   ∀sectorAddress: dom (drives drive?) ⦁ ∃image: seq( BIT ) ⦁ ( ( bitPattern? infix image ⇒ patternFound! = TRUE  ) ∨  (¬(bitPattern? infix image) ⇒ patternFound! = FALSE) ) ∧ image = image ⁀ drives drive? sectorAddress
+   ∀sectorAddress: dom (drives drive?) ⦁ ∃image: seq( BIT ) | ( ( bitPattern? infix image ⇒ patternFound! = TRUE  ) ∨  (¬(bitPattern? infix image) ⇒ patternFound! = FALSE) ) ⦁
+   																								image = image ⁀ drives drive? sectorAddress
 └
