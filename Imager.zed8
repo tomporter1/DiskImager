@@ -76,7 +76,7 @@ adds the device with the new image on it to the images relation
   image, sDrive: seq( seq( BIT ) )
   errorSectors!: 𝔽 ℕ
 |
-  (target?) ∉ dom drives
+  target? ∉ dom drives
   changed′ = changed
   drives′ source? = drives source?
   ∀sectorAddress: dom (drives source?) | sDrive = sDrive ⊕ { sectorAddress ↦ (drives source?) sectorAddress } ⦁ sectorAddress ∉ changed source?
