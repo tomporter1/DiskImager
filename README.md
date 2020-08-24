@@ -1,6 +1,6 @@
 # Z model of a Disk Imager
 
-This repository contains the project that I made as part of my final year project at the University of York titled Formal Methods for Forensic Tools.
+This repository contains the project that I made as part of my final year project at the University of York titled: Formal Methods for Forensic Tools.
 
 The objective of this project was to ascertain the usefulness of formally modelling basic tools used during investigations. In this case, it was a Disk Imager that works on a FAT file structure.
 
